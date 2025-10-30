@@ -19,6 +19,7 @@ public class ProjectController {
     private SecurityUtil securityUtil;
 
     @PostMapping("/add")
+    
     public ResponseEntity<?> addProject(@RequestBody Project project) {
         String role = securityUtil.getCurrentUserRole();
         if(!role.equals("ROLE_ADMIN") && !role.equals("ROLE_CLIENT") && !role.equals("ROLE_TEAMLEAD"))

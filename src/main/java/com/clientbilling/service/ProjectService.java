@@ -8,6 +8,7 @@ import com.clientbilling.repository.AdminRepository;
 import com.clientbilling.repository.ClientRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -23,6 +24,7 @@ public class ProjectService {
     @Autowired
     private ClientRepository clientRepository;
 
+    @Transactional
     public Project addProject(Project project) {
 
         // Attach existing Admin
@@ -30,8 +32,6 @@ public class ProjectService {
             Admin existingAdmin = adminRepository.findById(project.getAdmin().getId())
                     .orElseThrow(() -> new RuntimeException("Admin not found"));
             project.setAdmin(existingAdmin);
-
-            // Maintain bidirectional link
             existingAdmin.getProjects().add(project);
         }
 
@@ -40,22 +40,23 @@ public class ProjectService {
             Client existingClient = clientRepository.findById(project.getClient().getId())
                     .orElseThrow(() -> new RuntimeException("Client not found"));
             project.setClient(existingClient);
-
-            // Maintain client-project link
             existingClient.getProjects().add(project);
         }
 
         return projectRepository.save(project);
     }
 
+    @Transactional(readOnly = true)
     public Project getProjectById(Long id) {
         return projectRepository.findById(id).orElse(null);
     }
 
+    @Transactional(readOnly = true)
     public List<Project> getAllProjects() {
         return projectRepository.findAll();
     }
 
+    @Transactional
     public void deleteProject(Long id) {
         projectRepository.deleteById(id);
     }

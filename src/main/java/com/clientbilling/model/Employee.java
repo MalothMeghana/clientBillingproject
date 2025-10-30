@@ -2,13 +2,17 @@ package com.clientbilling.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "employees")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Employee {
 
     @Id
@@ -18,23 +22,29 @@ public class Employee {
     private String empIdNo;
     private String username;
     private String password;
-    private String designation;
+
+    @Column(unique = true, nullable = false)
+    private String email;
+
+
     private String role = "ROLE_EMPLOYEE";
+    private String profileImage;
+    private String contactNumber;
     private String status;
 
     // Relationships
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_id")
-    @JsonBackReference("admin-employees")
+    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
     private Admin admin;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teamlead_id")
-    @JsonBackReference("teamlead-employees")
+    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
     private TeamLead teamLead;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id")
-    @JsonBackReference("project-employees")
+    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
     private Project project;
 }

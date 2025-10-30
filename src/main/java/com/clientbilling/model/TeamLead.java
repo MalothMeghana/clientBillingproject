@@ -12,33 +12,39 @@ import java.util.List;
 @AllArgsConstructor
 @Table(name = "teamleads")
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class TeamLead {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String empIdNo = "";
+    private String teamleadIdNo = "";
     private String username;
     private String password;
+
+    @Column(unique = true, nullable = false)
+    private String email;
+
+    private String contactNumber;
+    private String profileImage;
     private String role = "ROLE_TEAMLEAD";
 
     // Relationships
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_id")
-    @JsonBackReference("admin-teamleads")
+    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
     private Admin admin;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
-    @JsonBackReference("client-teamleads")
+    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
     private Client client;
 
     @OneToMany(mappedBy = "teamLead", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference("teamlead-employees")
     private List<Employee> employees = new ArrayList<>();
 
     @OneToMany(mappedBy = "teamLead", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference("teamlead-projects")
     private List<Project> projects = new ArrayList<>();
 }

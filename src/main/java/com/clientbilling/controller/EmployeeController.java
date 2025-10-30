@@ -1,5 +1,7 @@
 package com.clientbilling.controller;
 
+
+import com.clientbilling.dto.EmployeeProfileDTO;
 import com.clientbilling.model.Employee;
 import com.clientbilling.service.EmployeeService;
 import com.clientbilling.security.SecurityUtil;
@@ -14,6 +16,7 @@ import org.springframework.security.authentication.*;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/employee")
@@ -118,5 +121,43 @@ public class EmployeeController {
             return ResponseEntity.status(403).body("Access Denied");
         employeeService.deleteEmployee(id);
         return ResponseEntity.ok("Employee deleted successfully");
+    }
+    // ✅ Upload Profile Image
+    @PostMapping("/{id}/profile-upload")
+    public ResponseEntity<?> uploadProfile(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        if (!securityUtil.hasAnyRole("ROLE_ADMIN", "ROLE_TEAMLEAD", "ROLE_EMPLOYEE")) {
+            return ResponseEntity.status(403).body("Access Denied");
+        }
+
+        try {
+            Employee emp = employeeService.uploadProfileImage(id, file);
+            return ResponseEntity.ok(Map.of("message", "Profile uploaded successfully", "profileImage", emp.getProfileImage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "File upload failed: " + e.getMessage()));
+        }
+    }
+
+    // ✅ Get Profile Details (DTO)
+    @GetMapping("/{id}/profile")
+    public ResponseEntity<?> getProfile(@PathVariable Long id) {
+        if (!securityUtil.hasAnyRole("ROLE_ADMIN", "ROLE_TEAMLEAD", "ROLE_EMPLOYEE")) {
+            return ResponseEntity.status(403).body("Access Denied");
+        }
+
+        Employee emp = employeeService.getEmployeeById(id);
+        if (emp == null) {
+            return ResponseEntity.status(404).body("Employee not found");
+        }
+
+        EmployeeProfileDTO profile = new EmployeeProfileDTO(
+                emp.getUsername(),
+                emp.getRole(),
+                emp.getEmail(),
+                emp.getProfileImage(),
+                emp.getContactNumber(),
+                emp.getStatus()
+        );
+
+        return ResponseEntity.ok(profile);
     }
 }

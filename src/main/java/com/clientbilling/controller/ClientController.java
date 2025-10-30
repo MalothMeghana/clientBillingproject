@@ -1,5 +1,7 @@
 package com.clientbilling.controller;
 
+
+import com.clientbilling.dto.ClientProfileDTO;
 import com.clientbilling.model.Client;
 import com.clientbilling.service.ClientService;
 import com.clientbilling.security.SecurityUtil;
@@ -11,8 +13,14 @@ import org.springframework.security.authentication.*;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.ResponseEntity;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 
 @RestController
@@ -122,5 +130,59 @@ public class ClientController {
         }
         clientService.deleteClient(id);
         return ResponseEntity.ok("Client deleted successfully");
+    }
+    // ✅ Upload profile image
+    @PostMapping("/{id}/profile-upload")
+    public ResponseEntity<?> uploadProfile(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        if (!securityUtil.hasAnyRole("ROLE_ADMIN", "ROLE_CLIENT")) {
+            return ResponseEntity.status(403).body("Access Denied");
+        }
+
+        Client client = clientService.getClientById(id);
+        if (client == null) {
+            return ResponseEntity.status(404).body("Client not found");
+        }
+
+        try {
+            Path uploadDir = Paths.get("uploads");
+            if (!Files.exists(uploadDir)) Files.createDirectories(uploadDir);
+
+            String filename = "client_" + id + "_" + file.getOriginalFilename();
+            Path filePath = uploadDir.resolve(filename);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Update image URL
+            client.setProfileImage("http://localhost:8080/uploads/" + filename);
+            clientService.saveClient(client);
+
+            return ResponseEntity.ok("Profile uploaded successfully!");
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("File upload failed: " + e.getMessage());
+        }
+    }
+
+    // ✅ Get Client Profile by ID
+    @GetMapping("/{id}/profile")
+    public ResponseEntity<?> getProfile(@PathVariable Long id) {
+        if (!securityUtil.hasAnyRole("ROLE_ADMIN", "ROLE_CLIENT")) {
+            return ResponseEntity.status(403).body("Access Denied");
+        }
+
+        Client client = clientService.getClientById(id);
+        if (client == null) {
+            return ResponseEntity.status(404).body("Client not found");
+        }
+
+        ClientProfileDTO profile = new ClientProfileDTO(
+                client.getUsername(),
+                client.getRole(),
+                client.getEmail(),
+                client.getProfileImage(),
+                client.getContactNumber(),
+                client.getCompanyName()
+        );
+
+        return ResponseEntity.ok(profile);
     }
 }

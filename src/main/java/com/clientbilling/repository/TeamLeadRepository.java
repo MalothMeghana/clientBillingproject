@@ -7,7 +7,7 @@ import com.clientbilling.model.TeamLead;
 
 public interface TeamLeadRepository extends JpaRepository<TeamLead, Long> {
   
-	Optional<TeamLead> findByEmpIdNo(String empIdNo);
+	Optional<TeamLead> findByteamleadIdNo(String empIdNo);
     Optional<TeamLead> findByUsername(String username);
+	Optional<TeamLead> findByEmail(String email);
 }
-
