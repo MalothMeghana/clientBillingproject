@@ -10,59 +10,72 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class AdminService {
 
     @Autowired
     private AdminRepository adminRepository;
 
-    // ✅ Register Admin with email validation
+    /**
+     * ✅ Register a new Admin after validating email.
+     */
     public Admin registerAdmin(Admin admin) {
-        // Validate email
-        if (admin.getEmail() == null || admin.getEmail().trim().isEmpty()) {
-            throw new RuntimeException("Email is required");
-        }
+        validateEmail(admin.getEmail());
 
-        // Check for uniqueness
-        Optional<Admin> existing = adminRepository.findByEmail(admin.getEmail());
-        if (existing.isPresent()) {
-            throw new RuntimeException("Email already exists");
+        // Check for existing email
+        if (adminRepository.findByEmail(admin.getEmail()).isPresent()) {
+            throw new RuntimeException("Email already exists: " + admin.getEmail());
         }
 
         return adminRepository.save(admin);
     }
 
-    // ✅ Save or update Admin (used in profile upload and general updates)
+    /**
+     * ✅ Save or update Admin.
+     */
     public Admin saveAdmin(Admin admin) {
         return adminRepository.save(admin);
     }
 
-    // ✅ Get Admin by ID
+    /**
+     * ✅ Get Admin by ID.
+     */
     public Admin getAdminById(Long id) {
-        return adminRepository.findById(id).orElse(null);
+        return adminRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Admin not found with ID: " + id));
     }
 
-    // ✅ Get all Admins (initialize lazy relationships to avoid LazyInitializationException)
+    /**
+     * ✅ Get all Admins.
+     */
     @Transactional(readOnly = true)
     public List<Admin> getAllAdmins() {
-        List<Admin> admins = adminRepository.findAll();
-        admins.forEach(admin -> {
-            if (admin.getClients() != null) admin.getClients().size();
-            if (admin.getProjects() != null) admin.getProjects().size();
-            if (admin.getInvoices() != null) admin.getInvoices().size();
-        });
-        return admins;
+        return adminRepository.findAll();
     }
 
-    // ✅ Delete Admin by ID
+    /**
+     * ✅ Delete Admin by ID.
+     */
     public void deleteAdmin(Long id) {
         if (!adminRepository.existsById(id)) {
-            throw new RuntimeException("Admin not found with ID: " + id);
+            throw new RuntimeException("Cannot delete: Admin not found with ID: " + id);
         }
         adminRepository.deleteById(id);
     }
 
-    // ✅ Optional helper — find by email (useful for login or checks)
+    /**
+     * ✅ Find Admin by email.
+     */
     public Optional<Admin> findByEmail(String email) {
         return adminRepository.findByEmail(email);
+    }
+
+    /**
+     * 🔹 Utility: Validate email.
+     */
+    private void validateEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new RuntimeException("Email is required");
+        }
     }
 }

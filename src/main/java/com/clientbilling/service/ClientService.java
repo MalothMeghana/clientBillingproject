@@ -1,8 +1,6 @@
 package com.clientbilling.service;
 
-import com.clientbilling.model.Admin;
 import com.clientbilling.model.Client;
-import com.clientbilling.repository.AdminRepository;
 import com.clientbilling.repository.ClientRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,10 +15,7 @@ public class ClientService {
     @Autowired
     private ClientRepository clientRepository;
 
-    @Autowired
-    private AdminRepository adminRepository;
-
-    // ✅ Register Client (with email validation + attach existing Admin)
+    // ✅ Register Client (only email validation, no admin mapping)
     public Client registerClient(Client client) {
         // Validate email
         if (client.getEmail() == null || client.getEmail().trim().isEmpty()) {
@@ -33,16 +28,7 @@ public class ClientService {
             throw new RuntimeException("Email already exists");
         }
 
-        // Attach Admin if provided
-        if (client.getAdmin() != null && client.getAdmin().getId() != null) {
-            Admin existingAdmin = adminRepository.findById(client.getAdmin().getId())
-                    .orElseThrow(() -> new RuntimeException("Admin not found"));
-            client.setAdmin(existingAdmin);
-
-            // Maintain bidirectional relationship
-            existingAdmin.getClients().add(client);
-        }
-
+        // Just save client — no admin linking
         return clientRepository.save(client);
     }
 
@@ -59,13 +45,7 @@ public class ClientService {
     // ✅ Get All Clients
     @Transactional(readOnly = true)
     public List<Client> getAllClients() {
-        List<Client> clients = clientRepository.findAll();
-        clients.forEach(client -> {
-            if (client.getAdmin() != null) client.getAdmin().getId(); // initialize relationship
-            if (client.getProjects() != null) client.getProjects().size();
-            if (client.getInvoices() != null) client.getInvoices().size();
-        });
-        return clients;
+        return clientRepository.findAll();
     }
 
     // ✅ Delete Client by ID

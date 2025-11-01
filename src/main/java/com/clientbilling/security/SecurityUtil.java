@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class SecurityUtil {
+	
 
     // Get logged-in username
     public String getCurrentUsername() {

@@ -12,8 +12,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-@EnableMethodSecurity
+
 @Configuration
+@EnableMethodSecurity  // ✅ Enables @PreAuthorize in controllers
 public class SecurityConfig {
 
     @Autowired
@@ -22,13 +23,17 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
-    // ✅ Password Encoder Bean
+    /**
+     * ✅ Password Encoder Bean — Used for hashing passwords
+     */
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // ✅ DaoAuthenticationProvider Bean
+    /**
+     * ✅ Authentication Provider — Connects user details service with password encoder
+     */
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -37,34 +42,45 @@ public class SecurityConfig {
         return provider;
     }
 
-    // ✅ AuthenticationManager Bean
+    /**
+     * ✅ Authentication Manager — Core authentication manager bean
+     */
     @Bean
-    public AuthenticationManager authManager(HttpSecurity http) throws Exception {
-        AuthenticationManagerBuilder authBuilder = 
-                http.getSharedObject(AuthenticationManagerBuilder.class);
+    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+        AuthenticationManagerBuilder authBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
         authBuilder.authenticationProvider(authenticationProvider());
         return authBuilder.build();
     }
 
-    // ✅ Security Filter Chain
+    /**
+     * ✅ Main Security Filter Chain — Defines which endpoints are public and which need authentication
+     */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
+            .csrf(csrf -> csrf.disable())  // ❌ Disable CSRF for REST APIs
             .authorizeHttpRequests(auth -> auth
+                // ✅ Publicly accessible endpoints
                 .requestMatchers(
-                        "/api/auth/**",      // login endpoint
-                        "/api/admin/register" // allow admin registration
+                    "/api/auth/**",         // login, token generation, etc.
+                    "/api/admin/register",  // first admin registration allowed
+                    "/uploads/**"           // allow profile image access
                 ).permitAll()
+
+                // ✅ All other API endpoints require authentication
                 .anyRequest().authenticated()
             )
-            .sessionManagement(sess -> 
-                sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .authenticationProvider(authenticationProvider()); // ✅ added provider
 
-        // ✅ Add JWT filter before UsernamePasswordAuthenticationFilter
-        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            // ✅ Stateless session — no HTTP sessions
+            .sessionManagement(session -> 
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+
+            // ✅ Add authentication provider
+            .authenticationProvider(authenticationProvider())
+
+            // ✅ Add JWT filter before username-password authentication
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

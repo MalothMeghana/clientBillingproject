@@ -31,40 +31,40 @@ public class CustomUserDetailsService implements UserDetailsService {
     private EmployeeRepository employeeRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
 
         // 🔹 1. Admin
-        Optional<Admin> admin = adminRepository.findByUsername(username);
+        Optional<Admin> admin = adminRepository.findByEmail(email);
         if (admin.isPresent()) {
-            return buildUser(admin.get().getUsername(), admin.get().getPassword(), admin.get().getRole());
+            return buildUser(admin.get().getEmail(), admin.get().getPassword(), admin.get().getRole());
         }
 
         // 🔹 2. Client
-        Optional<Client> client = clientRepository.findByUsername(username);
+        Optional<Client> client = clientRepository.findByEmail(email);
         if (client.isPresent()) {
-            return buildUser(client.get().getUsername(), client.get().getPassword(), client.get().getRole());
+            return buildUser(client.get().getEmail(), client.get().getPassword(), client.get().getRole());
         }
 
         // 🔹 3. TeamLead
-        Optional<TeamLead> tl = teamLeadRepository.findByUsername(username);
+        Optional<TeamLead> tl = teamLeadRepository.findByEmail(email);
         if (tl.isPresent()) {
-            return buildUser(tl.get().getUsername(), tl.get().getPassword(), tl.get().getRole());
+            return buildUser(tl.get().getEmail(), tl.get().getPassword(), tl.get().getRole());
         }
 
         // 🔹 4. Employee
-        Optional<Employee> emp = employeeRepository.findByUsername(username);
+        Optional<Employee> emp = employeeRepository.findByEmail(email);
         if (emp.isPresent()) {
-            return buildUser(emp.get().getUsername(), emp.get().getPassword(), emp.get().getRole());
+            return buildUser(emp.get().getEmail(), emp.get().getPassword(), emp.get().getRole());
         }
 
-        throw new UsernameNotFoundException("User not found: " + username);
+        throw new UsernameNotFoundException("User not found with email: " + email);
     }
 
-    // ✅ Helper to clean role
-    private UserDetails buildUser(String username, String password, String role) {
+    // ✅ Helper to build Spring Security User object
+    private UserDetails buildUser(String email, String password, String role) {
         String finalRole = role.startsWith("ROLE_") ? role.substring(5) : role;
         return User.builder()
-                   .username(username)
+                   .username(email)
                    .password(password)
                    .roles(finalRole)
                    .build();

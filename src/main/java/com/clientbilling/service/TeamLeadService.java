@@ -1,18 +1,9 @@
 package com.clientbilling.service;
 
 import com.clientbilling.model.TeamLead;
-import com.clientbilling.model.Project;
-import com.clientbilling.model.Admin;
-import com.clientbilling.model.Client;
 import com.clientbilling.repository.TeamLeadRepository;
-import com.clientbilling.repository.ProjectRepository;
-import com.clientbilling.repository.AdminRepository;
-import com.clientbilling.repository.ClientRepository;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,18 +13,8 @@ public class TeamLeadService {
     @Autowired
     private TeamLeadRepository teamLeadRepository;
 
-    @Autowired
-    private ProjectRepository projectRepository;
-
-    @Autowired
-    private AdminRepository adminRepository;
-
-    @Autowired
-    private ClientRepository clientRepository;
-
-    // ✅ Register TeamLead with validation
+    // ✅ Register TeamLead (no mapping)
     public TeamLead registerTeamLead(TeamLead teamLead) {
-
         if (teamLead.getEmail() == null || teamLead.getEmail().isEmpty()) {
             throw new RuntimeException("Email is required");
         }
@@ -43,39 +24,10 @@ public class TeamLeadService {
             throw new RuntimeException("Email already exists");
         }
 
-        if (teamLead.getRole() == null || teamLead.getRole().isEmpty()) {
-            teamLead.setRole("ROLE_TEAMLEAD");
-        }
-
-        if (teamLead.getAdmin() != null && teamLead.getAdmin().getId() != null) {
-            Admin admin = adminRepository.findById(teamLead.getAdmin().getId())
-                    .orElseThrow(() -> new RuntimeException("Admin not found"));
-            teamLead.setAdmin(admin);
-        }
-
-        if (teamLead.getClient() != null && teamLead.getClient().getId() != null) {
-            Client client = clientRepository.findById(teamLead.getClient().getId())
-                    .orElseThrow(() -> new RuntimeException("Client not found"));
-            teamLead.setClient(client);
-        }
-
-        List<Project> projects = new ArrayList<>();
-        if (teamLead.getProjects() != null) {
-            for (Project p : teamLead.getProjects()) {
-                if (p.getId() != null) {
-                    Project project = projectRepository.findById(p.getId())
-                            .orElseThrow(() -> new RuntimeException("Project not found"));
-                    project.setTeamLead(teamLead);
-                    projects.add(project);
-                }
-            }
-        }
-        teamLead.setProjects(projects);
-
         return teamLeadRepository.save(teamLead);
     }
 
-    // ✅ New method: Save or update TeamLead (used in profile upload)
+    // ✅ Save or update TeamLead (used in profile upload)
     public TeamLead saveTeamLead(TeamLead teamLead) {
         return teamLeadRepository.save(teamLead);
     }

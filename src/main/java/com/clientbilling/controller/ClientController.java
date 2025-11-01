@@ -1,27 +1,20 @@
 package com.clientbilling.controller;
 
-
 import com.clientbilling.dto.ClientProfileDTO;
 import com.clientbilling.model.Client;
 import com.clientbilling.service.ClientService;
-import com.clientbilling.security.SecurityUtil;
 import com.clientbilling.security.JwtUtil;
 import com.clientbilling.security.CustomUserDetailsService;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.*;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.Map;
+import java.nio.file.*;
 
 @RestController
 @RequestMapping("/api/client")
@@ -29,9 +22,6 @@ public class ClientController {
 
     @Autowired
     private ClientService clientService;
-
-    @Autowired
-    private SecurityUtil securityUtil;
 
     @Autowired
     private JwtUtil jwtUtil;
@@ -45,99 +35,57 @@ public class ClientController {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
-        String username = loginData.get("username");
-        String password = loginData.get("password");
 
-        try {
-            // Load user details from DB first
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            System.out.println("Loaded user: " + userDetails.getUsername() + ", hashed password: " + userDetails.getPassword());
-
-            // Authenticate credentials using AuthenticationManager
-            authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password)
-            );
-
-            String role = userDetails.getAuthorities().stream()
-                                     .findFirst()
-                                     .map(a -> a.getAuthority())
-                                     .orElse("ROLE_CLIENT");
-
-            String token = jwtUtil.generateToken(username, role);
-
-            return ResponseEntity.ok(Map.of(
-                "username", username,
-                "role", role,
-                "token", token
-            ));
-
-        } catch (BadCredentialsException e) {
-            return ResponseEntity.status(401).body(Map.of("error", "Invalid Credentials"));
-        }
-    }
-
-    // ✅ Register Client
+    // ✅ Register Client (Admin only)
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/register")
     public ResponseEntity<?> registerClient(@RequestBody Client client) {
-        if (!"ROLE_ADMIN".equals(securityUtil.getCurrentUserRole())) {
-            return ResponseEntity.status(403).body("Access Denied: Only Admin can register a client");
+
+        // ✅ Validate adminId
+        if (client.getAdminid() == null) {
+            return ResponseEntity.badRequest().body("adminId is required for client registration");
         }
 
-        // Default role
+        // Default role for registered user
         if (client.getRole() == null || client.getRole().isEmpty()) {
             client.setRole("ROLE_CLIENT");
         }
 
-        // Hash password before saving
-        System.out.println("Password before encode: " + client.getPassword());
+        // Encrypt password before saving
         client.setPassword(passwordEncoder.encode(client.getPassword()));
-        System.out.println("Password after encode: " + client.getPassword());
 
         Client savedClient = clientService.registerClient(client);
         return ResponseEntity.ok(savedClient);
     }
 
-
-    // 3️⃣ Get all clients
+    // ✅ Get all clients (Admin only)
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<?> getAllClients() {
-        String role = securityUtil.getCurrentUserRole();
-        if (!role.equals("ROLE_ADMIN") && !role.equals("ROLE_CLIENT")) {
-            return ResponseEntity.status(403).body("Access Denied");
-        }
         return ResponseEntity.ok(clientService.getAllClients());
     }
 
-    // 4️⃣ Get client by id
+    // ✅ Get client by ID (Admin + Client)
+    @PreAuthorize("hasAnyRole('ADMIN','CLIENT')")
     @GetMapping("/{id}")
     public ResponseEntity<?> getClientById(@PathVariable Long id) {
-        String role = securityUtil.getCurrentUserRole();
-        if (!role.equals("ROLE_ADMIN") && !role.equals("ROLE_CLIENT")) {
-            return ResponseEntity.status(403).body("Access Denied");
-        }
         Client client = clientService.getClientById(id);
         if (client != null) return ResponseEntity.ok(client);
         return ResponseEntity.notFound().build();
     }
 
-    // 5️⃣ Delete client
+    // ✅ Delete client (Admin only)
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteClient(@PathVariable Long id) {
-        if (!"ROLE_ADMIN".equals(securityUtil.getCurrentUserRole())) {
-            return ResponseEntity.status(403).body("Access Denied");
-        }
         clientService.deleteClient(id);
         return ResponseEntity.ok("Client deleted successfully");
     }
-    // ✅ Upload profile image
+
+    // ✅ Upload profile image (Admin + Client)
+    @PreAuthorize("hasAnyRole('ADMIN','CLIENT')")
     @PostMapping("/{id}/profile-upload")
     public ResponseEntity<?> uploadProfile(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
-        if (!securityUtil.hasAnyRole("ROLE_ADMIN", "ROLE_CLIENT")) {
-            return ResponseEntity.status(403).body("Access Denied");
-        }
-
         Client client = clientService.getClientById(id);
         if (client == null) {
             return ResponseEntity.status(404).body("Client not found");
@@ -151,24 +99,19 @@ public class ClientController {
             Path filePath = uploadDir.resolve(filename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // Update image URL
             client.setProfileImage("http://localhost:8080/uploads/" + filename);
             clientService.saveClient(client);
 
             return ResponseEntity.ok("Profile uploaded successfully!");
         } catch (IOException e) {
-            e.printStackTrace();
             return ResponseEntity.status(500).body("File upload failed: " + e.getMessage());
         }
     }
 
-    // ✅ Get Client Profile by ID
+    // ✅ Get Client Profile (Admin + Client)
+    @PreAuthorize("hasAnyRole('ADMIN','CLIENT')")
     @GetMapping("/{id}/profile")
     public ResponseEntity<?> getProfile(@PathVariable Long id) {
-        if (!securityUtil.hasAnyRole("ROLE_ADMIN", "ROLE_CLIENT")) {
-            return ResponseEntity.status(403).body("Access Denied");
-        }
-
         Client client = clientService.getClientById(id);
         if (client == null) {
             return ResponseEntity.status(404).body("Client not found");
