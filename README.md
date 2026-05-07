@@ -6,7 +6,7 @@ The project contains:
 
 - `backend/` - Spring Boot REST API
 - `frontend/` - React + Vite user interface
-- `scripts/` - helper and smoke-test scripts
+
 
 ## Features
 
@@ -18,7 +18,7 @@ The project contains:
 - Forgot-password flow with OTP email support
 - Profile image upload support
 - PostgreSQL for normal development
-- H2 local profile for quick backend testing without PostgreSQL
+
 
 ## Tech Stack
 
@@ -31,7 +31,7 @@ The project contains:
 - JWT authentication
 - Spring Data JPA
 - PostgreSQL
-- H2 for local profile
+
 - JavaMailSender for email
 - Razorpay Java SDK
 - iText PDF
@@ -40,12 +40,11 @@ The project contains:
 ### Frontend
 
 - React 19
-- Vite / Rolldown Vite
+- Vite 
 - React Router
 - Axios
 - Tailwind CSS
 - Lucide React
-- React Hot Toast
 - jsPDF
 
 ## Project Structure
@@ -82,11 +81,11 @@ CBMS-PROJECT/
 
 Install these before running the project:
 
-- Java 17 or newer
-- Node.js 18 or newer
+- Java 17
+- Node.js 
 - npm
-- PostgreSQL, unless using the backend `local` H2 profile
-- Maven is optional because the backend includes Maven wrapper scripts
+- PostgreSQL
+- Maven 
 
 ## Environment Variables
 
@@ -105,9 +104,7 @@ SPRING_MAIL_PASSWORD=your-gmail-app-password
 RAZORPAY_KEY_ID=your_razorpay_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 JWT_SECRET=your-secret-key-here
-```
 
-Do not commit real passwords, SMTP app passwords, Razorpay keys, or JWT secrets.
 
 ## Database Setup
 
